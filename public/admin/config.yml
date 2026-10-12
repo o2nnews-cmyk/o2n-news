@@ -1,0 +1,406 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Ananta Newz admin panel — Sveltia CMS (https://sveltiacms.app/en/docs)
+#  Every "Save" in the admin commits to GitHub; your host rebuilds the site
+#  automatically (about a minute). No server, no database, no monthly bill.
+# ─────────────────────────────────────────────────────────────────────────────
+
+backend:
+  name: github
+  repo: o2nnews-cmyk/o2n-news
+  branch: main
+
+site_url: https://o2n-news.pages.dev
+display_url: https://o2n-news.pages.dev
+logo_url: /favicon.svg
+
+# Site-wide uploads (logo, author photos). Story images are stored inside each story's folder.
+media_folder: /public/uploads
+public_folder: /uploads
+
+# Uploaded photos are converted to WebP and capped at 2400px before they are committed.
+media_libraries:
+  default:
+    config:
+      transformations:
+        raster_image:
+          format: webp
+          quality: 85
+          width: 2400
+          height: 2400
+
+# Web addresses for stories are the date and time: /news/20260919-1632/. Nothing to type, and the link
+# stays short when it is shared on WhatsApp. (A Hindi address was tried first, but a shared link turned
+# into 300 characters of %E0%A4… — see HANDOFF.md.) `timezone: local` keeps it on India time instead of
+# UTC; Sveltia adds "-1" by itself if two stories land in the same minute.
+slug:
+  encoding: ascii
+  clean_accents: false
+  sanitize_replacement: '-'
+  timezone: local
+
+collections:
+  # ─────────────────────────────────────────────────────────── Stories
+  - name: articles
+    label: खबरें (Stories)
+    label_singular: खबर (Story)
+    icon: newspaper
+    description: News articles, video stories and features.
+    folder: src/content/articles
+    path: '{{slug}}/index'
+    slug: '{{year}}{{month}}{{day}}-{{hour}}{{minute}}'
+    media_folder: ''
+    public_folder: ''
+    create: true
+    delete: true
+    extension: md
+    format: frontmatter
+    # Sveltia's ternary needs single quotes inside, so this line is double-quoted YAML.
+    summary: "{{draft | ternary('🔴 ड्राफ्ट — ', '')}}{{title}}"
+    sortable_fields:
+      fields: [date, title, category]
+      default:
+        field: date
+        direction: descending
+    view_filters:
+      - { label: Featured, field: featured, pattern: true }
+      - { label: Breaking, field: breaking, pattern: true }
+      - { label: Drafts, field: draft, pattern: true }
+    view_groups:
+      - { label: Category, field: category }
+    fields:
+      - { label: शीर्षक (Headline), name: title, widget: string }
+      - label: सारांश (Summary)
+        name: excerpt
+        widget: text
+        required: false
+        hint: One or two sentences shown under the headline and in story cards.
+      - label: श्रेणी (Category)
+        name: category
+        widget: relation
+        collection: categories
+        value_field: '{{slug}}'
+        search_fields: [name]
+        display_fields: [name]
+      - label: लेखक (Author)
+        name: author
+        widget: relation
+        default: namit-bhati
+        collection: authors
+        value_field: '{{slug}}'
+        search_fields: [name]
+        display_fields: [name]
+        required: false
+      - { label: तारीख (Publish date), name: date, widget: datetime, default: '{{now}}', input_timezone: Asia/Kolkata, output_utc: true }
+      - { label: मुख्य फोटो (Cover image), name: cover, widget: image, required: false, choose_url: true }
+      - label: फोटो विवरण (Alt text)
+        name: cover_alt
+        widget: string
+        required: false
+        hint: Describe the photo for readers using screen readers.
+      - { label: कैप्शन / फोटो क्रेडिट (Caption), name: cover_caption, widget: string, required: false }
+      - label: और फोटो (More photos — 3 तक)
+        name: photos
+        widget: list
+        required: false
+        max: 3
+        summary: '{{fields.caption}}'
+        hint: मुख्य फोटो के अलावा 3 और फोटो जोड़ सकते हैं। ये खबर के नीचे एक लाइन में दिखेंगी।
+        fields:
+          - { label: फोटो (Photo), name: image, widget: image }
+          - { label: कैप्शन / फोटो क्रेडिट, name: caption, widget: string, required: false }
+      - label: YouTube वीडियो
+        name: youtube
+        widget: string
+        required: false
+        hint: Paste any YouTube link. It becomes the lead video and the story appears in Videos.
+      - label: Facebook वीडियो / रील
+        name: facebook
+        widget: string
+        required: false
+        hint: Facebook वीडियो या रील का लिंक। YouTube खाली हो तो यही खबर के सबसे ऊपर चलेगा, और खबर वीडियो सेक्शन में भी दिखेगी।
+      - { label: टैग (Tags), name: tags, widget: list, required: false }
+      - label: फीचर्ड (Featured)
+        name: featured
+        widget: boolean
+        default: false
+        hint: Featured stories lead the homepage and the "Most read" list.
+      - label: ब्रेकिंग न्यूज़ (Breaking)
+        name: breaking
+        widget: boolean
+        default: false
+        hint: Shows the story in the red "Breaking" ticker on every page.
+      - label: ड्राफ्ट (Draft)
+        name: draft
+        widget: boolean
+        default: false
+        hint: Drafts are saved but hidden from the live site.
+      - { label: खबर (Story), name: body, widget: markdown }
+
+  # ─────────────────────────────────────────────────────── Web stories
+  - name: webstories
+    label: वेब स्टोरीज़ (Web stories)
+    label_singular: वेब स्टोरी (Web story)
+    icon: auto_stories
+    description: Tap-through photo stories (AMP Web Stories, eligible for Google Discover).
+    folder: src/content/webstories
+    path: '{{slug}}/index'
+    slug: '{{year}}{{month}}{{day}}-{{hour}}{{minute}}'
+    media_folder: ''
+    public_folder: ''
+    create: true
+    delete: true
+    extension: md
+    format: frontmatter
+    summary: "{{draft | ternary('🔴 ड्राफ्ट — ', '')}}{{title}}"
+    sortable_fields:
+      fields: [date, title]
+      default:
+        field: date
+        direction: descending
+    fields:
+      - { label: शीर्षक (Title), name: title, widget: string }
+      - { label: तारीख (Publish date), name: date, widget: datetime, default: '{{now}}', input_timezone: Asia/Kolkata, output_utc: true }
+      - label: कवर फोटो (Cover, portrait 9:16)
+        name: cover
+        widget: image
+        required: false
+        hint: Tall photo shown first. If empty, the first slide's photo is used.
+      - label: स्लाइड (Slides)
+        name: slides
+        widget: list
+        min: 1
+        fields:
+          - { label: फोटो (Portrait photo), name: image, widget: image }
+          - { label: हेडिंग (Heading), name: heading, widget: string, required: false }
+          - { label: टेक्स्ट (Text), name: text, widget: text, required: false }
+          - { label: फोटो क्रेडिट (Credit), name: credit, widget: string, required: false }
+      - label: पूरी खबर का लिंक (Link to full story)
+        name: link
+        widget: string
+        required: false
+        hint: Optional, e.g. /news/your-story/ — shown as a "Read the full story" button on the last slide.
+      - { label: ड्राफ्ट (Draft), name: draft, widget: boolean, default: false }
+
+  # ─────────────────────────────────────────────────────── Categories
+  - name: categories
+    label: श्रेणियां (Categories)
+    label_singular: श्रेणी (Category)
+    icon: category
+    folder: src/content/categories
+    create: true
+    delete: true
+    extension: json
+    format: json
+    identifier_field: name
+    slug: '{{fields._slug}}'
+    summary: '{{name}}'
+    sortable_fields: [order, name]
+    fields:
+      - { label: नाम (Name), name: name, widget: string }
+      - { label: विवरण (Description), name: description, widget: text, required: false }
+      - { label: रंग (Accent colour), name: color, widget: color, required: false }
+      - label: मेन्यू क्रम (Menu position)
+        name: order
+        widget: number
+        value_type: int
+        default: 10
+        hint: Lower numbers appear first in the menu and on the homepage.
+      - label: मुख्य श्रेणी (Parent section)
+        name: parent
+        widget: relation
+        collection: categories
+        value_field: '{{slug}}'
+        search_fields: [name]
+        display_fields: [name]
+        required: false
+        hint: Optional. For sub-sections, e.g. "उत्तर प्रदेश" inside "राज्य".
+
+  # ──────────────────────────────────────────────────────────── Authors
+  - name: authors
+    label: लेखक (Authors)
+    label_singular: लेखक (Author)
+    icon: person
+    folder: src/content/authors
+    create: true
+    delete: true
+    extension: json
+    format: json
+    identifier_field: name
+    slug: '{{fields._slug}}'
+    media_folder: /public/uploads/authors
+    public_folder: /uploads/authors
+    fields:
+      - { label: नाम (Name), name: name, widget: string }
+      - { label: पद (Role), name: role, widget: string, required: false }
+      - { label: परिचय (Short bio), name: bio, widget: text, required: false }
+      - { label: फोटो (Photo), name: avatar, widget: image, required: false }
+      - { label: X / Twitter URL, name: x, widget: string, required: false }
+
+  # ─────────────────────────────────────────────────────────────── Pages
+  - name: pages
+    label: पेज (Pages)
+    label_singular: पेज (Page)
+    icon: description
+    description: Static pages such as About, Contact and Privacy — linked in the footer.
+    folder: src/content/pages
+    create: true
+    delete: true
+    extension: md
+    format: frontmatter
+    slug: '{{fields._slug}}'
+    media_folder: /public/uploads/pages
+    public_folder: /uploads/pages
+    fields:
+      - { label: शीर्षक (Title), name: title, widget: string }
+      - { label: विवरण (Description), name: description, widget: text, required: false }
+      - { label: सामग्री (Content), name: body, widget: markdown }
+
+  # ────────────────────────────────────────────────────── Site settings
+  - name: settings
+    label: सेटिंग्स (Settings)
+    icon: settings
+    files:
+      - name: site
+        label: साइट सेटिंग्स (Site settings)
+        file: src/data/settings.json
+        fields:
+          - { label: थीम (Theme), name: theme, widget: hidden, default: tarang }
+          - label: भाषा (Interface language)
+            name: language
+            widget: select
+            options:
+              - { label: हिन्दी, value: hi }
+              - { label: English, value: en }
+          - { label: साइट का नाम (Site name), name: site_title, widget: string }
+          - { label: टैगलाइन (Tagline), name: tagline, widget: string }
+          - { label: Google के लिए विवरण (Description), name: description, widget: text }
+          - label: लोगो (Logo)
+            name: logo
+            widget: image
+            required: false
+            hint: Optional. Without a logo, the site name is shown as a styled text logo.
+          - { label: ब्रांड रंग (Brand colour), name: brand_color, widget: color }
+          - label: सोशल मीडिया — Facebook, Instagram, YouTube (Social media links)
+            name: social
+            widget: object
+            hint: अपने पेज / चैनल का पूरा लिंक डालें। खाली छोड़ने पर वह आइकन नहीं दिखेगा।
+            fields:
+              - { label: Facebook पेज, name: facebook, widget: string, required: false, hint: 'e.g. https://www.facebook.com/yourpage' }
+              - { label: Instagram, name: instagram, widget: string, required: false, hint: 'e.g. https://www.instagram.com/yourname' }
+              - { label: YouTube चैनल, name: youtube, widget: string, required: false, hint: 'e.g. https://www.youtube.com/@yourchannel' }
+              - { label: X (Twitter), name: x, widget: string, required: false }
+              - { label: WhatsApp, name: whatsapp, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000' }
+          - label: फॉलोअर्स / सब्सक्राइबर दिखाएं (Follower counts)
+            name: follow
+            widget: object
+            collapsed: true
+            hint: साइट पर "हमसे जुड़ें" डिब्बा — Facebook, Instagram और YouTube की गिनती के साथ। ऊपर सोशल मीडिया के लिंक भरे होने ज़रूरी हैं।
+            fields:
+              - { label: यह डिब्बा दिखाएं, name: show, widget: boolean, default: true }
+              - { label: Facebook फॉलोअर्स, name: facebook, widget: string, required: false, hint: 'जैसे: 12.5K या 12,500 — खुद भरें' }
+              - { label: Instagram फॉलोअर्स, name: instagram, widget: string, required: false, hint: 'जैसे: 8.2K' }
+              - { label: YouTube सब्सक्राइबर, name: youtube, widget: string, required: false, hint: 'नीचे चैनल और API key भरने पर यह अपने-आप आ जाता है' }
+              - { label: YouTube व्यूज़, name: youtube_views, widget: string, required: false, hint: 'नीचे चैनल और API key भरने पर यह अपने-आप आ जाता है' }
+              - label: YouTube चैनल (अपने-आप गिनती के लिए)
+                name: youtube_channel
+                widget: string
+                required: false
+                hint: चैनल का हैंडल (@yourchannel) या चैनल ID (UC से शुरू)। खाली छोड़ेंगे तो ऊपर वाले नंबर ही दिखेंगे।
+              - label: YouTube API key
+                name: youtube_api_key
+                widget: string
+                required: false
+                hint: Google Cloud से मुफ़्त "YouTube Data API v3" key। यह key साइट के कोड में दिखती है, इसलिए Google में इसे अपनी वेबसाइट तक सीमित (HTTP referrer) ज़रूर करें।
+          - label: फॉलो करने का पॉपअप (Subscribe popup)
+            name: subscribe_popup
+            widget: object
+            collapsed: true
+            hint: वेबसाइट खुलते ही पाठक से YouTube, Facebook और Instagram फॉलो करने को कहा जाएगा। चैनलों के लिंक ऊपर "सोशल मीडिया" में भरे होने चाहिए।
+            fields:
+              - { label: पॉपअप दिखाएं, name: show, widget: boolean, default: false }
+              - { label: कितने सेकंड बाद दिखे, name: delay, widget: number, default: 6, value_type: int, min: 0, max: 60, hint: 'पेज खुलने के कितने सेकंड बाद — 5 से 8 ठीक रहता है।' }
+              - { label: बंद करने के बाद कितने दिन न दिखे, name: days, widget: number, default: 7, value_type: int, min: 1, max: 90, hint: 'पाठक एक बार बंद कर दे तो इतने दिन दोबारा नहीं दिखेगा।' }
+              - { label: पॉपअप का शीर्षक, name: title, widget: string, required: false, hint: 'खाली छोड़ेंगे तो "हमसे जुड़े रहिए" दिखेगा।' }
+              - { label: पॉपअप की लाइन, name: text, widget: string, required: false, hint: 'खाली छोड़ेंगे तो "ताज़ा खबरों के लिए हमारे चैनल फॉलो कीजिए।" दिखेगा।' }
+          - label: साइट का पता (Site URL)
+            name: site_url
+            widget: string
+            hint: Your live address, e.g. https://anantanewz.pages.dev — used for sharing links, RSS and the sitemap.
+          - { label: Date format (locale), name: locale, widget: string, default: hi-IN, hint: 'e.g. hi-IN, en-IN, en-US' }
+          - { label: Time zone, name: timezone, widget: string, default: Asia/Kolkata }
+          - label: खबर कॉपी होने से रोकें (Copy protection)
+            name: protect_content
+            widget: boolean
+            default: false
+            hint: चालू करने पर साइट से टेक्स्ट और फोटो कॉपी नहीं होंगे, और राइट-क्लिक बंद रहेगा। पूरी तरह रोकना मुमकिन नहीं — स्क्रीनशॉट फिर भी लिए जा सकते हैं।
+          - { label: ब्रेकिंग टिकर दिखाएं (Show breaking ticker), name: show_ticker, widget: boolean, default: true }
+          - { label: टिकर लेबल (Ticker label), name: ticker_label, widget: string, default: ब्रेकिंग }
+          - label: ब्रेकिंग पट्टी का रंग (Breaking strip colour)
+            name: ticker_color
+            widget: color
+            required: false
+            hint: खाली छोड़ेंगे तो पट्टी ब्रांड रंग में रहेगी। लाल (#d21f26) भरने पर पूरी पट्टी लाल और उस पर खबरें सफ़ेद दिखेंगी।
+          - { label: WhatsApp चैनल लिंक, name: whatsapp_channel, widget: string, required: false }
+          - { label: Telegram लिंक, name: telegram_channel, widget: string, required: false }
+          - { label: पुरानी खबरें अपने-आप हटाएं — कितने दिन बाद (Auto-delete old stories after N days), name: auto_delete_days, widget: number, value_type: int, min: 0, required: false, hint: 'इतने दिन से पुरानी खबरें और वेब स्टोरीज़ हर रात अपने-आप हट जाएंगी (नई 20 खबरें हमेशा रहेंगी)। 0 = कभी न हटाएं।' }
+          - label: ऐप लिंक (App links)
+            name: app
+            widget: object
+            fields:
+              - { label: Google Play URL, name: play_store, widget: string, required: false }
+              - { label: App Store URL, name: app_store, widget: string, required: false }
+              - { label: Android ऐप फ़ाइल (APK link), name: android_apk, widget: string, required: false, hint: 'Direct download, e.g. /download/app.apk — npm run new-client fills this in.' }
+          - label: आज का सुविचार (Thoughts of the day)
+            name: quotes
+            widget: list
+            required: false
+            field: { label: सुविचार (Quote), name: quote, widget: text }
+            hint: One is shown each day, in rotation.
+          - label: सहयोग (Donations via UPI)
+            name: donate
+            widget: object
+            fields:
+              - { label: UPI ID, name: upi_id, widget: string, required: false, hint: 'e.g. yourname@okaxis — leave empty to hide the donation box.' }
+              - { label: प्राप्तकर्ता नाम (Payee name), name: payee_name, widget: string, required: false }
+              - { label: संदेश (Message), name: note, widget: text, required: false }
+          - { label: फुटर नोट (Footer note), name: footer_note, widget: text, required: false }
+      - name: ads
+        label: विज्ञापन (Ads)
+        file: src/data/ads.json
+        fields:
+          - label: विज्ञापन (Ads)
+            name: ads
+            widget: list
+            required: false
+            summary: '{{fields.name}} · {{fields.placement}}'
+            hint: किसी भी आकार की फोटो डालें — बैनर, चौकोर या लंबी। एक ही जगह पर कई विज्ञापन एक के नीचे एक दिखेंगे।
+            fields:
+              - { label: नाम (सिर्फ़ आपके लिए), name: name, widget: string, hint: 'e.g. शर्मा ज्वेलर्स — दिवाली' }
+              - { label: चालू है (Active), name: active, widget: boolean, default: true, hint: 'बंद करने पर विज्ञापन छिप जाएगा, हटेगा नहीं।' }
+              - label: कहां दिखे (Placement)
+                name: placement
+                widget: select
+                default: top
+                options:
+                  - { label: 'सबसे ऊपर — हर पेज पर हेडर के नीचे', value: top }
+                  - { label: 'होम पेज — खबरों के बीच', value: home }
+                  - { label: 'हर खबर के अंदर — फोटो के नीचे', value: story }
+                  - { label: 'खबर के नीचे — पूरी खबर पढ़ने के बाद', value: after-story }
+                  - { label: 'साइडबार — कंप्यूटर पर दाईं ओर, मोबाइल पर नीचे', value: sidebar }
+                  - { label: 'सबसे नीचे — फुटर के ऊपर', value: bottom }
+              - label: क्रम (Order)
+                name: order
+                widget: number
+                required: false
+                value_type: int
+                min: 1
+                hint: एक ही जगह पर कई विज्ञापन हों तो कौन पहले दिखे — 1 सबसे ऊपर, फिर 2, 3। खाली छोड़ेंगे तो सबसे नीचे।
+              - label: स्लाइड शो में दिखाएं (Slide show)
+                name: slide
+                widget: boolean
+                default: false
+                required: false
+                hint: एक ही जगह के विज्ञापन एक के नीचे एक दिखने के बजाय बारी-बारी (हर 5 सेकंड में) बदलते रहेंगे। उस जगह के किसी एक विज्ञापन में चालू करना काफ़ी है।
+              - { label: विज्ञापन की फोटो (Ad image), name: image, widget: image, required: false, hint: 'कोई भी आकार। चौड़ाई अपने-आप फिट हो जाती है।' }
+              - { label: क्लिक करने पर कहां जाए (Link), name: link, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000 या दुकान की वेबसाइट। खाली छोड़ सकते हैं।' }
+              - { label: विज्ञापन कोड — Google AdSense आदि (Ad code), name: code, widget: text, required: false, hint: 'फोटो की जगह किसी विज्ञापन कंपनी का HTML कोड। ज़्यादातर लोग इसे खाली छोड़ें।' }
