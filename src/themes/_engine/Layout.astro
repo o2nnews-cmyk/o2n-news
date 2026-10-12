@@ -1,0 +1,91 @@
+---
+import AdSlot from '../../components/AdSlot.astro';
+import AgencyCredit from '../../components/AgencyCredit.astro';
+import DemoBar from '../../components/DemoBar.astro';
+import Head from '../../components/Head.astro';
+import InstallApp from '../../components/InstallApp.astro';
+import SubscribePopup from '../../components/SubscribePopup.astro';
+import Ticker from '../../components/Ticker.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import TabBar from './TabBar.astro';
+import Drawer from './Drawer.astro';
+import { config } from '@theme-config';
+import { brandColor, settings } from '../../lib/content';
+import { lang, t } from '../../lib/i18n';
+import type { LayoutProps } from '../../lib/types';
+
+type Props = LayoutProps;
+const { activeNav, ...head } = Astro.props;
+
+// A client's brand colour from Site settings. Light colours (e.g. yellow) get dark text on top.
+function brandVars(hex?: string): string | undefined {
+  if (!hex) return;
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h.slice(0, 6);
+  const [r, g, b] = [0, 2, 4]
+    .map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const light = 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45;
+  return light
+    ? `--brand:${hex};--on-brand:#111;--brand-ink:color-mix(in srgb, ${hex} 55%, #000)`
+    : `--brand:${hex};--on-brand:#fff;--brand-ink:${hex}`;
+}
+// The breaking strip can have its own colour (Settings → ब्रेकिंग पट्टी का रंग), e.g. red on a blue site.
+function tickerVars(hex?: string): string {
+  if (!/^#[0-9a-f]{3,8}$/i.test(hex ?? '')) return '';
+  const h = hex!.replace('#', '');
+  const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h.slice(0, 6);
+  const [r, g, b] = [0, 2, 4]
+    .map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const light = 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45;
+  return `--ticker:${hex};--on-ticker:${light ? '#111' : '#fff'};`;
+}
+const tickerStyle = tickerVars((settings as { ticker_color?: string }).ticker_color);
+---
+
+<!doctype html>
+<html
+  lang={lang}
+  data-locale={settings.locale}
+  data-tz={settings.timezone}
+  style={[brandVars(brandColor), tickerStyle].filter(Boolean).join(';') || undefined}
+  data-protect={(settings as { protect_content?: boolean }).protect_content ? '' : undefined}
+  data-theme={config.mode === 'dark' ? 'dark' : undefined}
+  data-topbar={config.topbar}
+  data-header={config.header}
+  data-nav={config.nav}
+  data-hero={config.hero}
+  data-cards={config.cards}
+  data-heads={config.heads}
+  data-footer={config.footer}
+  data-logo={config.logo}
+  data-catcolors={config.categoryColors === false ? 'off' : undefined}
+>
+  <head>
+    <Head {...head} />
+    <meta name="theme-color" content={brandColor ?? config.accent} />
+    <slot name="head" />
+  </head>
+  <body class="sm">
+    <a class="skip-link" href="#main">{t('skip')}</a>
+    <DemoBar />
+    <Header active={activeNav} />
+    <Ticker />
+    <AdSlot place="top" class="container" />
+    <main id="main">
+      <slot />
+    </main>
+    <AdSlot place="bottom" class="container" />
+    <Footer />
+    <AgencyCredit />
+    <TabBar active={activeNav} />
+    <Drawer />
+    <InstallApp />
+    <SubscribePopup />
+    <script>
+      import '../../scripts/site.ts';
+    </script>
+  </body>
+</html>
