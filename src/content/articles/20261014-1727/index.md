@@ -7,7 +7,7 @@ excerpt: |-
 category: uttar-pradesh
 author: namit-bhati
 date: 2026-10-14T10:38:00Z
-cover: fb07d04a-84d6-4898-90a5-699b034f4f15.webp
+cover: 5f4ea2f2-d4a8-4f50-94aa-035621b80221.webp
 cover_alt: ''
 cover_caption: ''
 photos: []
