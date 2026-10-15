@@ -12,6 +12,7 @@
     "icons": "node scripts/app-icons.mjs",
     "new-client": "node scripts/new-client.mjs",
     "app": "node scripts/app.mjs",
+    "app:flutter": "node scripts/app-flutter.mjs",
     "app:preview": "node tools/app-preview.mjs 4410",
     "cleanup": "node scripts/cleanup-old-stories.mjs",
     "showcase": "node showcase/build.mjs",
