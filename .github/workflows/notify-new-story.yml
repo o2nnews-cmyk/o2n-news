@@ -1,0 +1,37 @@
+# Sends a phone notification when a story is published.
+#
+# When the admin panel saves a story, GitHub gets a commit; this run picks the newest story out of
+# it and asks Firebase to tell every phone that listens to the "news" topic. No list of readers is
+# kept anywhere — Firebase only knows which phones asked for that topic.
+#
+# Needs one secret (Settings → Secrets and variables → Actions):
+#   FIREBASE_SERVICE_ACCOUNT — the whole JSON from
+#   Firebase console → Project settings → Service accounts → Generate new private key
+#
+# It is a key to the project, so it goes straight into GitHub's secret box and nowhere else.
+name: Notify new story
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/articles/**'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # Two stories saved together should not become two runs racing each other.
+    concurrency:
+      group: notify
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Send the newest story to the phones
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/notify-new-story.mjs
