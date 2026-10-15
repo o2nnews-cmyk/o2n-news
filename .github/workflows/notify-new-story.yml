@@ -21,6 +21,8 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    # It waits for the site to rebuild (so the story and its picture exist) before sending.
+    timeout-minutes: 10
     # Two stories saved together should not become two runs racing each other.
     concurrency:
       group: notify
