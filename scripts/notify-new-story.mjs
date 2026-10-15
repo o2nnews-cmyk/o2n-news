@@ -83,8 +83,33 @@ function accessToken() {
 
 /* -------------------------------------------------------------------- send it */
 
-const settingsPath = join(ROOT, 'src/data/settings.json');
-const siteTitle = existsSync(settingsPath) ? JSON.parse(readFileSync(settingsPath, 'utf8')).site_title : 'News';
+const settings = existsSync(join(ROOT, 'src/data/settings.json'))
+  ? JSON.parse(readFileSync(join(ROOT, 'src/data/settings.json'), 'utf8'))
+  : {};
+const siteTitle = settings.site_title ?? 'News';
+const site = (settings.site_url ?? '').replace(/\/?$/, '/');
+
+/* ------------------------------------------- wait for the story to be on the site */
+// The site rebuilds a couple of minutes after the commit. Sending before that would hand the
+// reader a notification whose story is not there yet — and we would have no picture to show.
+// So we wait for the story's own feed file to appear, then read the picture from it.
+let picture;
+if (site) {
+  for (let tries = 0; tries < 20; tries += 1) {
+    try {
+      const res = await fetch(`${site}app/v1/news/${story.id}.json`);
+      if (res.ok) {
+        const json = await res.json();
+        const image = json.image ?? json.thumb ?? json.cover?.src;
+        if (image) picture = image.startsWith('http') ? image : site + image.replace(/^\//, '');
+        break;
+      }
+    } catch {
+      // not published yet; try again below
+    }
+    await new Promise((r) => setTimeout(r, 15_000));
+  }
+}
 
 const token = await accessToken();
 const res = await fetch(`https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`, {
@@ -93,12 +118,13 @@ const res = await fetch(`https://fcm.googleapis.com/v1/projects/${account.projec
   body: JSON.stringify({
     message: {
       topic: 'news',
-      notification: { title: siteTitle, body: story.title },
+      notification: { title: siteTitle, body: story.title, ...(picture ? { image: picture } : {}) },
       // The app opens this story when the reader taps the notification.
       data: { story: story.id },
       android: {
         priority: 'HIGH',
-        notification: { channel_id: 'breaking', default_sound: true },
+        // The app creates this channel with sound and vibration (lib/notification_style.dart).
+        notification: { channel_id: 'breaking_v2', default_sound: true, ...(picture ? { image: picture } : {}) },
       },
     },
   }),
