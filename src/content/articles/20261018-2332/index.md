@@ -4,11 +4,11 @@ excerpt: जगनपुर गांव में अखिल भारती�
 category: uttar-pradesh
 author: namit-bhati
 date: 2026-10-18T17:58:00Z
-cover: ''
+cover: IMG_9264.webp
 cover_alt: ''
 cover_caption: ''
 photos:
-  - image: IMG_9264.webp
+  - image: IMG_9265.webp
     caption: ''
   - image: IMG_9266.webp
     caption: ''
