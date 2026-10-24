@@ -8,5 +8,5 @@ slides:
     text: ''
     credit: ''
 link: ''
-draft: true
+draft: false
 ---
