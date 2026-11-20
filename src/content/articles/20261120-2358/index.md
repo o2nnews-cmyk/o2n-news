@@ -4,7 +4,7 @@ excerpt: अखिल भारतीय गुर्जर महासभा �
 category: uttar-pradesh
 author: namit-bhati
 date: 2026-11-20T18:28:00Z
-cover: f4973ac4-c890-42f0-bb38-0a483d5768ca.webp
+cover: ''
 cover_alt: ''
 cover_caption: ''
 photos:
